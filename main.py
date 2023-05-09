@@ -556,13 +556,13 @@ class MovementSystem(Processor):
             new_pos = render.x, render.y
             if pyxel.btnp(pyxel.KEY_W):
                 new_pos = render.x, render.y - TSIZE
-            if pyxel.btn(pyxel.KEY_S):
+            if pyxel.btnp(pyxel.KEY_S):
                 new_pos = render.x, render.y + TSIZE
-            if pyxel.btn(pyxel.KEY_A):
+            if pyxel.btnp(pyxel.KEY_A):
                 new_pos = render.x - TSIZE, render.y
-            if pyxel.btn(pyxel.KEY_D):
+            if pyxel.btnp(pyxel.KEY_D):
                 new_pos = render.x + TSIZE, render.y
-            if pyxel.btn(pyxel.KEY_SPACE):
+            if pyxel.btnp(pyxel.KEY_SPACE):
                 pyxel.play(0, 0)
                 self.world.create_entity(
                     Circle(5, render.x, render.y),
