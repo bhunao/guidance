@@ -462,15 +462,17 @@ SCREEN_SIZE = 128, 128
 MID = SCREEN_SIZE[0] / 2, SCREEN_SIZE[1] / 2
 
 TSIZE = 8
+HALFSIZE = TSIZE / 2
 
 # sprites
-COLKEY = 0
+COLKEY = pyxel.COLOR_WHITE
 #   image, u, v, w, h, colkey
 FISH1 = 0, 0, 32, 24, 16, COLKEY
 FISH2 = 0, 0, 48, 24, 16, COLKEY
 HOOK = (0, 0, 8, 8, 8, 0)
 
-PLAYER = 0, TSIZE*0, TSIZE*1, TSIZE, TSIZE, COLKEY
+PLAYER = 0, TSIZE*0, TSIZE*1, TSIZE, TSIZE, pyxel.COLOR_BLACK
+PLAYER2 = 0, TSIZE*0, TSIZE*0, TSIZE, TSIZE, pyxel.COLOR_BLACK
 
 # tiles
 DIRT1 = 0, 4
@@ -508,6 +510,13 @@ class CameraComponent:
     x: int
     y: int
 
+@dataclass
+class Circle:
+    r: int
+    x: int
+    y: int
+    max: int = 64
+
 
 import enum
 
@@ -515,23 +524,35 @@ import enum
 class Tiles(enum.Enum):
     BLOCK = 1, 0
     VOID = 2, 0
+    SPIKE = 1, 1
+    _VOID = 0, 0
 
 
 def get_tile(x, y):
     return pyxel.tilemap(0).pget(x, y)
 
 
+class CircleSystem(Processor):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def process(self):
+        for ent, circ in self.world.get_components(Circle):
+            circ = circ[0]
+            circ.r += 1
+
+            pyxel.circb(circ.x + HALFSIZE, circ.y + HALFSIZE, circ.r, pyxel.COLOR_LIME)
+
+            if circ.r > circ.max:
+                self.world.delete_entity(ent)
+
 class MovementSystem(Processor):
     def __init__(self) -> None:
         super().__init__()
 
     def process(self):
-        ent, camera = self.world.get_component(CameraComponent)[0]
-        for ent, (render, velocity) in self.world.get_components(AnimatedSpriteComponent, VelocityComponent):
-
-            x, y = render.x // TSIZE, render.y // TSIZE
-            print('player_pos:', x, y)
-
+        for ent, (render) in self.world.get_components(AnimatedSpriteComponent):
+            render = render[0]
             new_pos = render.x, render.y
             if pyxel.btnp(pyxel.KEY_W):
                 new_pos = render.x, render.y - TSIZE
@@ -541,15 +562,16 @@ class MovementSystem(Processor):
                 new_pos = render.x - TSIZE, render.y
             if pyxel.btn(pyxel.KEY_D):
                 new_pos = render.x + TSIZE, render.y
+            if pyxel.btn(pyxel.KEY_SPACE):
+                self.world.create_entity(
+                    Circle(5, render.x, render.y),
+                )
+                pass
 
-            x, y = new_pos[0] // TSIZE, new_pos[0] // TSIZE
-
+            x, y = new_pos[0] // TSIZE, new_pos[1] // TSIZE
             tile = get_tile(x, y)
-            print('tile:', tile, 'pos:', x, y)
-
             match Tiles(tile):
                 case Tiles.BLOCK:
-                    print("block")
                     return
                 case _:
                     pass
@@ -561,7 +583,11 @@ class AnimatedSpriteSystem(Processor):
         super().__init__()
 
     def process(self):
-        pyxel.cls(10)
+        pyxel.cls(pyxel.COLOR_BLACK)
+        ent, (player, render) = self.world.get_components(PlayerComponent, AnimatedSpriteComponent)[0]
+        pyxel.circ(render.x + HALFSIZE, render.y + HALFSIZE, 64, pyxel.COLOR_NAVY)
+        pyxel.circ(render.x + HALFSIZE, render.y + HALFSIZE, 42, pyxel.COLOR_DARK_BLUE)
+        pyxel.circ(render.x + HALFSIZE, render.y + HALFSIZE, 28, pyxel.COLOR_LIGHT_BLUE)
         pyxel.bltm(0, 0, 0, 0, 0, 128*3, 128, COLKEY)
 
         for ent, (render) in self.world.get_components(AnimatedSpriteComponent):
@@ -598,7 +624,7 @@ class KeyboardInputProcessor(Processor):
 class App:
     def __init__(self) -> None:
         pyxel.init(*SCREEN_SIZE, display_scale=4)
-        pyxel.load("assets.pyxres")
+        pyxel.load("assetsW.pyxres")
         self.offset = 0
         # pyxel.playm(0, loop=True)
 
@@ -606,11 +632,12 @@ class App:
         self.world.add_processor(AnimatedSpriteSystem())
         self.world.add_processor(MovementSystem())
         self.world.add_processor(KeyboardInputProcessor())
+        self.world.add_processor(CircleSystem())
 
         self.world.create_entity(
             AnimatedSpriteComponent(
                 64, 64,
-                [PLAYER]
+                [PLAYER, PLAYER2]
             ),
             PlayerComponent(),
             VelocityComponent(0, 0)
@@ -629,3 +656,4 @@ class App:
 
 
 App()
+
