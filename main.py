@@ -563,6 +563,7 @@ class MovementSystem(Processor):
             if pyxel.btn(pyxel.KEY_D):
                 new_pos = render.x + TSIZE, render.y
             if pyxel.btn(pyxel.KEY_SPACE):
+                pyxel.play(0, 0)
                 self.world.create_entity(
                     Circle(5, render.x, render.y),
                 )
